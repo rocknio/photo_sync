@@ -32,10 +32,6 @@ class _PhotoGridState extends State<PhotoGrid> {
 		print("request index = $index , image id = ${entity.id} type = ${entity.type}");
 
 		Future<Uint8List> thumbDataWithSize = entity.thumbDataWithSize(500, 500);
-		Future<Duration> length = entity.videoDuration;
-		length.then((v){
-			print("duration = $v");
-		});
 
 		return FutureBuilder<Uint8List>(
 			future: thumbDataWithSize,
@@ -58,10 +54,8 @@ class _PhotoGridState extends State<PhotoGrid> {
 	}
 
 	showInfo(AssetEntity entity) async {
-		if (entity.type == AssetType.video) {
-			var file = await entity.file;
-			var length = file.lengthSync();
-			print("${entity.id} length = $length");
-		}
+		var file = await entity.file;
+		var length = file.lengthSync();
+		print("${entity.id} length = $length");
 	}
 }

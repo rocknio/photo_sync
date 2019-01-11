@@ -127,7 +127,7 @@ class _HomePageState extends State<HomePage> {
             ConnectivityLogo(wifiName: _wifiName, connectType: _connectStatus,),
           ],
         ),
-        body: AssetsSyncPage(assetsModel: widget.allAssets.assets,),
+        body: AssetsSyncPage(assetsModel: widget.allAssets.assets),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             refreshAssets();
