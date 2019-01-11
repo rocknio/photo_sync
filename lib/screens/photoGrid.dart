@@ -43,11 +43,7 @@ class _PhotoGridState extends State<PhotoGrid> {
 					);
 				}
 				return Center(
-					child: Container(
-						width: 30.0,
-						height: 30.0,
-						child: CircularProgressIndicator(),
-					),
+						child: Container(width: 30.0, height: 30.0 ,child: Image.asset('assets/images/loading.gif')),
 				);
 			},
 		);

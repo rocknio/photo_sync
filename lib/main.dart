@@ -56,7 +56,7 @@ class _HomePageState extends State<HomePage> {
       }
     } on PlatformException catch (e) {
       print(e.toString());
-      connectStatus = 'Failed to get connectivity';
+      connectStatus = 'Unknown';
     }
 
     if (!mounted) {
@@ -132,7 +132,7 @@ class _HomePageState extends State<HomePage> {
           onPressed: () {
             refreshAssets();
           },
-          child: Icon(Icons.send),
+          child: Icon(Icons.sync),
         ),
     );
   }

@@ -28,11 +28,7 @@ class AssetsGridPage extends StatelessWidget {
 					);
 				} else {
 					return Center(
-						child: Container(
-							width: 30.0,
-							height: 30.0,
-							child: CircularProgressIndicator()
-						),
+						child: Container(width: 30.0, height: 30.0 ,child: Image.asset('assets/images/loading.gif')),
 					);
 				}
 			},
