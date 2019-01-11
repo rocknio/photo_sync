@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:connectivity/connectivity.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:photo_sync/screens/assetsGrid.dart';
+//import 'package:photo_sync/screens/assetsGrid.dart';
+import 'package:photo_sync/models/assetModel.dart';
+import 'package:photo_sync/screens/assetsSync.dart';
 
 void main() {
+  // 强制竖屏
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown
@@ -14,20 +17,21 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PhotoSync',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: HomePage(),
+        title: 'PhotoSync',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: HomePage(),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
+  final AllAssets allAssets = AllAssets();
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -37,8 +41,6 @@ class _HomePageState extends State<HomePage> {
   final Connectivity _connectivity = Connectivity();
   String _connectStatus = 'Unknown';
   String _wifiName = 'Unknown';
-  bool _isSync = false;
-  var _pathList = <AssetEntity>[];
 
   Future<void> getWifiInfo() async {
     String connectStatus;
@@ -76,9 +78,10 @@ class _HomePageState extends State<HomePage> {
     } else {
       List<AssetPathEntity> list = await PhotoManager.getAssetPathList(hasVideo: true);
 
-      for (AssetPathEntity oneAsset in list) {
-        if (oneAsset.name.toLowerCase() == 'Camera'.toLowerCase()) {
-          tmpList = await oneAsset.assetList;
+      for (AssetPathEntity oneAssetPath in list) {
+        if (oneAssetPath.name.toLowerCase() == 'Camera'.toLowerCase()) {
+          widget.allAssets.assetPath = oneAssetPath;
+          tmpList = await oneAssetPath.assetList;
         }
       }
 
@@ -86,8 +89,9 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      _pathList.clear();
-      _pathList.addAll(tmpList);
+      for (AssetEntity one_asset in tmpList) {
+        widget.allAssets.addAsset(one_asset);
+      }
 
       setState(() {
 
@@ -113,75 +117,29 @@ class _HomePageState extends State<HomePage> {
     _subscription.cancel();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Photo Sync'),
-        actions: <Widget>[
-          ConnectivityLogo(wifiName: _wifiName, connectType: _connectStatus,),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              child: Image.asset('assets/images/sync_logo.png'),
-              decoration: BoxDecoration(
-                color: Colors.lightBlue,
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.message, color: Colors.blue,),
-              title: Text('当前Wifi：$_wifiName'),
-              onTap: () {
-              },
-            ),
-            Row(
-              children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                  child: Icon(Icons.sync, color: Colors.blue,),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18.0),
-                  child: Text('在该Wifi下同步')
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                  child: Switch(
-                    value: _isSync,
-                    onChanged: (result) {
-                      setState(() {
-                        _isSync = result;
-                      });
-                    },
-                  ),
-                )
-              ],
-            ),
-            ListTile(
-              onTap: _openSetting,
-              leading: Icon(Icons.settings_applications, color: Colors.blue,),
-              title: Text('应用设置'),
-            ),
+        appBar: AppBar(
+          title: Text('Photo Sync'),
+          actions: <Widget>[
+            ConnectivityLogo(wifiName: _wifiName, connectType: _connectStatus,),
           ],
         ),
-      ),
-      body: AssetsGridPage(assetsList: _pathList,),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          refreshAssets();
-        },
-        child: Icon(Icons.refresh),
-      ),
+        body: AssetsSyncPage(assetsModel: widget.allAssets.assets,),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            refreshAssets();
+          },
+          child: Icon(Icons.send),
+        ),
     );
   }
 
-  void _openSetting() {
-    PhotoManager.openSetting();
-  }
+//  void _openSetting() {
+//    PhotoManager.openSetting();
+//  }
 }
 
 class ConnectivityLogo extends StatelessWidget {

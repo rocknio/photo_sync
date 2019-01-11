@@ -6,10 +6,10 @@ BoxDecoration assetDecoration() {
 	return BoxDecoration(
 			color: Colors.transparent,
 			border: Border.all(
-					color: Colors.lightBlueAccent,
-					width: 1.0
+					color: Colors.white,
+					width: 0.5
 			),
-			borderRadius: BorderRadius.all(Radius.circular(3.0))
+//			borderRadius: BorderRadius.all(Radius.circular(3.0))
 	);
 }
 
@@ -22,7 +22,14 @@ Container assetContainer(Uint8List data, AssetType type) {
 				Center(
 					child: Stack(
 						children: <Widget>[
-							Center(child: Image.memory(data)),
+							Center(
+								child: Image.memory(
+									data,
+									fit: BoxFit.cover,
+								  width: double.infinity,
+								  height: double.infinity,
+								)
+							),
 							Center(child: type == AssetType.video ? Icon(Icons.play_arrow, color: Colors.white, size: 50.0,) : Container(),)
 						],
 					),

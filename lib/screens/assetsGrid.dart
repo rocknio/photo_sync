@@ -3,14 +3,15 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:photo_sync/utils/utils.dart';
 import 'package:photo_sync/screens/assetShowPage.dart';
+import 'package:photo_sync/models/assetModel.dart';
 
 class AssetsGridPage extends StatelessWidget {
-	final List<AssetEntity>assetsList;
+	final List<AssetModel>assetsModelList;
 
-	AssetsGridPage({Key key, this.assetsList}) : super(key: key);
+	AssetsGridPage({Key key, this.assetsModelList}) : super(key: key);
 
 	Widget _buildHasPreviewItem(BuildContext context, int index) {
-		var asset = assetsList[index];
+		var asset = assetsModelList[index].asset;
 		return _buildPreview(asset);
 	}
 
@@ -40,12 +41,12 @@ class AssetsGridPage extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		if (assetsList.isEmpty) {
+		if (assetsModelList.isEmpty) {
 			return Container();
 		} else {
 			return GridView.count(
-				crossAxisCount: 3,
-				children: List.generate(assetsList.length, (index) {
+				crossAxisCount: 2,
+				children: List.generate(assetsModelList.length, (index) {
 					return _buildHasPreviewItem(context, index);
 				}),
 			);
