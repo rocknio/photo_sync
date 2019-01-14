@@ -24,6 +24,8 @@ dependencies:
   chewie: ^0.8.0
   crypto: ^2.0.6
   convert: ^2.1.1
+  protobuf: ^0.11.0
+  grpc: ^1.0.0
 
 dev_dependencies:
   flutter_test:

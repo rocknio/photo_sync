@@ -15,6 +15,11 @@ class AllAssets {
 
 		_assets.add(assetModel);
 	}
+
+	void clearAsset() {
+		_assets.clear();
+		assetPath = null;
+	}
 }
 
 class AssetModel {

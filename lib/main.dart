@@ -6,6 +6,7 @@ import 'package:photo_manager/photo_manager.dart';
 //import 'package:photo_sync/screens/assetsGrid.dart';
 import 'package:photo_sync/models/assetModel.dart';
 import 'package:photo_sync/screens/assetsSync.dart';
+import 'package:photo_sync/screens/connectivityLogo.dart';
 
 void main() {
   // 强制竖屏
@@ -37,38 +38,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  StreamSubscription<ConnectivityResult> _subscription;
-  final Connectivity _connectivity = Connectivity();
-  String _connectStatus = 'Unknown';
-  String _wifiName = 'Unknown';
-
-  Future<void> getWifiInfo() async {
-    String connectStatus;
-    String wifiName;
-
-    try {
-      wifiName = (await _connectivity.getWifiName()).toString();
-      if (wifiName == 'null') {
-        connectStatus = 'Unknown';
-        wifiName = 'Unknown';
-      } else {
-        connectStatus = (await _connectivity.checkConnectivity()).toString();
-      }
-    } on PlatformException catch (e) {
-      print(e.toString());
-      connectStatus = 'Unknown';
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _connectStatus = connectStatus;
-      _wifiName = wifiName;
-    });
-  }
-
   Future<void> refreshAssets() async {
     List<AssetEntity> tmpList;
     var result = await PhotoManager.requestPermission();
@@ -78,10 +47,13 @@ class _HomePageState extends State<HomePage> {
     } else {
       List<AssetPathEntity> list = await PhotoManager.getAssetPathList(hasVideo: true);
 
+      widget.allAssets.clearAsset();
+
       for (AssetPathEntity oneAssetPath in list) {
         if (oneAssetPath.name.toLowerCase() == 'Camera'.toLowerCase()) {
           widget.allAssets.assetPath = oneAssetPath;
           tmpList = await oneAssetPath.assetList;
+          break;
         }
       }
 
@@ -101,20 +73,12 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void initState() {
-    getWifiInfo();
     refreshAssets();
-
-    _subscription = _connectivity.onConnectivityChanged.listen(
-        (ConnectivityResult result) {
-          getWifiInfo();
-        }
-    );
     super.initState();
   }
 
   @override
   void dispose() {
-    _subscription.cancel();
     super.dispose();
   }
 
@@ -124,7 +88,7 @@ class _HomePageState extends State<HomePage> {
         appBar: AppBar(
           title: Text('Photo Sync'),
           actions: <Widget>[
-            ConnectivityLogo(wifiName: _wifiName, connectType: _connectStatus,),
+            ConnectivityLogo(),
           ],
         ),
         body: AssetsSyncPage(assetsModel: widget.allAssets.assets),
@@ -141,32 +105,3 @@ class _HomePageState extends State<HomePage> {
 //    PhotoManager.openSetting();
 //  }
 }
-
-class ConnectivityLogo extends StatelessWidget {
-  final String wifiName;
-  final String connectType;
-
-  ConnectivityLogo({Key key, this.wifiName, this.connectType}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    if (connectType != 'Unknown') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10.0),
-        child: Center(
-          child: connectType == 'ConnectivityResult.wifi'
-                  ? Icon(Icons.signal_wifi_4_bar, color: Colors.lightGreenAccent,)
-                  : Icon(Icons.signal_cellular_4_bar, color: Colors.lightGreenAccent,),
-        ),
-      );
-    } else {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10.0),
-        child: Center(
-          child: Icon(Icons.error, color: Colors.redAccent,),
-        ),
-      );
-    }
-  }
-}
-
