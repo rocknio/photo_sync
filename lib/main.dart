@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:connectivity/connectivity.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
-//import 'package:photo_sync/screens/assetsGrid.dart';
 import 'package:photo_sync/models/assetModel.dart';
 import 'package:photo_sync/screens/assetsSync.dart';
 import 'package:photo_sync/screens/connectivityLogo.dart';
