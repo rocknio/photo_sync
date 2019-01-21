@@ -2,15 +2,23 @@ import 'package:flutter/material.dart';
 import 'photoGrid.dart';
 import 'package:photo_sync/models/assetModel.dart';
 
-class AssetsSyncPage extends StatelessWidget {
+class AssetsSyncPage extends StatefulWidget {
 	final List<AssetModel> assetsModel;
-	int _syncCount;
 
 	AssetsSyncPage({Key key, this.assetsModel}) : super(key: key);
 
+  @override
+  AssetsSyncPageState createState() {
+    return new AssetsSyncPageState();
+  }
+}
+
+class AssetsSyncPageState extends State<AssetsSyncPage> {
+	int _syncCount;
+
 	@override
 	Widget build(BuildContext context) {
-		_syncCount = assetsModel.length;
+		_syncCount = widget.assetsModel.length;
 		return Container(
 			child: Column(
 			  children: <Widget>[
@@ -34,7 +42,7 @@ class AssetsSyncPage extends StatelessWidget {
 				  ),
 			  	Expanded(
 					  flex: 2,
-						child: PhotoGrid(photos: assetsModel,),
+						child: PhotoGrid(photos: widget.assetsModel,),
 				  )
 			  ],
 			)

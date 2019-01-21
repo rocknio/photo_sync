@@ -2,6 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:connectivity/connectivity.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:device_info/device_info.dart';
+import 'dart:io';
+//import 'package:get_ip/get_ip.dart';
+import 'package:photo_sync/models/deviceInfoModel.dart';
+import 'dart:convert';
+import 'package:convert/convert.dart';
+import 'package:crypto/crypto.dart' as crypto;
+//import 'dart:isolate';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart' as path;
+import 'package:photo_sync/models/server.dart';
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
 class ConnectivityLogo extends StatefulWidget {
   @override
@@ -13,6 +26,9 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 	final Connectivity _connectivity = Connectivity();
 	String _connectStatus = 'Unknown';
 	String _wifiName = 'Unknown';
+	DeviceInfo _deviceInfo;
+	bool _isRegistered = false;
+	Database _db;
 
 	Future<void> getWifiInfo() async {
 		String connectStatus;
@@ -41,15 +57,108 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 		});
 	}
 
+	generateMd5(String data) {
+		var content = new Utf8Encoder().convert(data);
+		var md5 = crypto.md5;
+		var digest = md5.convert(content);
+		return hex.encode(digest.bytes);
+	}
+
+	Future<void> getDeviceInfo() async {
+		DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+		if ( Platform.isAndroid ) {
+			AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+			_deviceInfo = DeviceInfo();
+			_deviceInfo.brand = androidInfo.board;
+			_deviceInfo.device = androidInfo.device;
+			_deviceInfo.deviceId = androidInfo.androidId;
+			_deviceInfo.clientHashCode = generateMd5(_deviceInfo.brand + _deviceInfo.device + _deviceInfo.deviceId);
+		} else if ( Platform.isIOS ) {
+			IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+			print("Running on IOS: $iosInfo");
+		}
+
+//		String ip = await GetIp.ipAddress;
+//		print("Ip Address = $ip ------------------------");
+	}
+
+	deviceRegister(String udpServerMsg) async {
+		// 如果device info还未获取，跳过，等待下一次消息
+		if (_deviceInfo == null) {
+			return;
+		}
+
+		// 已经注册过，跳过注册流程
+		if (_isRegistered) {
+			return;
+		} else {
+			_isRegistered = true;
+		}
+
+		Map serverMap = jsonDecode(udpServerMsg);
+		Server server = Server.fromJson(serverMap);
+
+		var now = new DateTime.now();
+		var formatter = new DateFormat("yyyyMMddHHmmss");
+		var transId = formatter.format(now);
+		String httpBody = '{"tranId": "$transId","brand": "${_deviceInfo.brand}","device": "${_deviceInfo.device}","client_hash_code": "${_deviceInfo.deviceId}"}';
+
+		String url = server.registerUrl + "/" + _deviceInfo.deviceId;
+		Map<String, String> headers = {
+			"Content-type": "application/json",
+			"Accept": "application/json",
+		};
+
+		final resp = await http.post(url, body: httpBody, headers: headers);
+		if (resp.statusCode != 200 ) {
+			_isRegistered = false;
+		}
+	}
+
+	startUdpServer() {
+		var addr = InternetAddress.anyIPv4;
+		int port = 21216;
+
+		RawDatagramSocket.bind(addr, port).then((RawDatagramSocket udpSocket) {
+			udpSocket.listen((RawSocketEvent event) {
+				if ( event == RawSocketEvent.read ) {
+					Datagram dg = udpSocket.receive();
+					deviceRegister(new String.fromCharCodes(dg.data));
+				}
+			});
+		});
+	}
+
+	initDbTable(Database db, int version) async {
+
+	}
+
+	Future<void> initLocalDb() async {
+		var dbPath = await getDatabasesPath();
+		String dbFilePath = path.join(dbPath, "photoSync.db");
+
+		_db = await openDatabase(dbFilePath, version: 1,
+			onCreate: initDbTable
+		);
+	}
+
 	@override
   void initState() {
+		// 启动udp server 接收局域网内own_fog的广播
+		startUdpServer();
+
+		// 初始化本地数据库
+		initLocalDb();
+
 		getWifiInfo();
 
 		_subscription = _connectivity.onConnectivityChanged.listen(
-						(ConnectivityResult result) {
-					getWifiInfo();
-				}
+			(ConnectivityResult result) {
+				getWifiInfo();
+			}
 		);
+
+		getDeviceInfo();
 
     super.initState();
   }

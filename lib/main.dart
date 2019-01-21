@@ -48,7 +48,7 @@ class _HomePageState extends State<HomePage> {
       widget.allAssets.clearAsset();
 
       for (AssetPathEntity oneAssetPath in list) {
-        if (oneAssetPath.name.toLowerCase() == 'Camera'.toLowerCase()) {
+        if (oneAssetPath.name.toLowerCase() == '全部'.toLowerCase()) {
           widget.allAssets.assetPath = oneAssetPath;
           tmpList = await oneAssetPath.assetList;
           break;
@@ -72,6 +72,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     refreshAssets();
+
     super.initState();
   }
 
