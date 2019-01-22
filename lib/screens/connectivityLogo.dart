@@ -4,17 +4,15 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:device_info/device_info.dart';
 import 'dart:io';
-//import 'package:get_ip/get_ip.dart';
 import 'package:photo_sync/models/deviceInfoModel.dart';
 import 'dart:convert';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart' as crypto;
-//import 'dart:isolate';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart' as path;
 import 'package:photo_sync/models/server.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:sqflite/sqflite.dart';
+import 'package:photo_sync/utils/dbUtils.dart';
 
 class ConnectivityLogo extends StatefulWidget {
   @override
@@ -69,7 +67,7 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 		if ( Platform.isAndroid ) {
 			AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
 			_deviceInfo = DeviceInfo();
-			_deviceInfo.brand = androidInfo.board;
+			_deviceInfo.brand = androidInfo.brand;
 			_deviceInfo.device = androidInfo.device;
 			_deviceInfo.deviceId = androidInfo.androidId;
 			_deviceInfo.clientHashCode = generateMd5(_deviceInfo.brand + _deviceInfo.device + _deviceInfo.deviceId);
@@ -129,17 +127,8 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 		});
 	}
 
-	initDbTable(Database db, int version) async {
-
-	}
-
-	Future<void> initLocalDb() async {
-		var dbPath = await getDatabasesPath();
-		String dbFilePath = path.join(dbPath, "photoSync.db");
-
-		_db = await openDatabase(dbFilePath, version: 1,
-			onCreate: initDbTable
-		);
+	Future<void> doDbInit() async {
+		_db = await initLocalDb();
 	}
 
 	@override
@@ -148,7 +137,7 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 		startUdpServer();
 
 		// 初始化本地数据库
-		initLocalDb();
+		doDbInit();
 
 		getWifiInfo();
 
@@ -191,7 +180,7 @@ class Logo extends StatelessWidget {
 				child: Center(
 					child: connectType == 'ConnectivityResult.wifi'
 							? Icon(Icons.signal_wifi_4_bar, color: Colors.lightGreenAccent,)
-							: Icon(Icons.signal_cellular_4_bar, color: Colors.lightGreenAccent,),
+							: Icon(Icons.signal_cellular_4_bar, color: Colors.yellowAccent,),
 				),
 			);
 		} else {
