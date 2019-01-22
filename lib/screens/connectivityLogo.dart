@@ -179,8 +179,8 @@ class Logo extends StatelessWidget {
 				padding: const EdgeInsets.symmetric(horizontal: 10.0),
 				child: Center(
 					child: connectType == 'ConnectivityResult.wifi'
-							? Icon(Icons.signal_wifi_4_bar, color: Colors.lightGreenAccent,)
-							: Icon(Icons.signal_cellular_4_bar, color: Colors.yellowAccent,),
+							? Icon(Icons.signal_wifi_4_bar, color: Colors.green,)
+							: Icon(Icons.signal_cellular_4_bar, color: Colors.blueGrey,),
 				),
 			);
 		} else {
