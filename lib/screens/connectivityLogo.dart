@@ -82,7 +82,7 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 
 	deviceRegister(String udpServerMsg) async {
 		// 如果device info还未获取，跳过，等待下一次消息
-		if (_deviceInfo == null) {
+		if (_deviceInfo == null || _db == null) {
 			return;
 		}
 
