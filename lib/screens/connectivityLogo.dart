@@ -25,7 +25,7 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 	String _connectStatus = 'Unknown';
 	String _wifiName = 'Unknown';
 	DeviceInfo _deviceInfo;
-	bool _isDbInited = false;
+	bool _isDbInitialized = false;
 
 	Future<void> getWifiInfo() async {
 		String connectStatus;
@@ -139,7 +139,7 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 
 	deviceRegister(String udpServerMsg) async {
 		// 如果device info还未获取，数据库未初始化完成，跳过，等待下一次消息
-		if (_deviceInfo == null || _isDbInited == false) {
+		if (_deviceInfo == null || _isDbInitialized == false) {
 			return;
 		}
 
@@ -177,7 +177,7 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 	}
 
 	Future<void> doDbInit() async {
-		_isDbInited = await initLocalDb();
+		_isDbInitialized = await initLocalDb();
 	}
 
 	@override
