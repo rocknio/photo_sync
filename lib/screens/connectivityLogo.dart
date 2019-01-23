@@ -11,8 +11,8 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:photo_sync/models/server.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
-import 'package:sqflite/sqflite.dart';
 import 'package:photo_sync/utils/dbUtils.dart';
+import 'package:flutter/cupertino.dart';
 
 class ConnectivityLogo extends StatefulWidget {
   @override
@@ -25,8 +25,7 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 	String _connectStatus = 'Unknown';
 	String _wifiName = 'Unknown';
 	DeviceInfo _deviceInfo;
-	bool _isRegistered = false;
-	Database _db;
+	bool _isDbInited = false;
 
 	Future<void> getWifiInfo() async {
 		String connectStatus;
@@ -80,22 +79,47 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 //		print("Ip Address = $ip ------------------------");
 	}
 
-	deviceRegister(String udpServerMsg) async {
-		// 如果device info还未获取，跳过，等待下一次消息
-		if (_deviceInfo == null || _db == null) {
-			return;
-		}
+	void addDiscardServer(String serverHashCode) async {
+		await insertDiscardServer(serverHashCode);
+	}
 
-		// 已经注册过，跳过注册流程
-		if (_isRegistered) {
-			return;
-		} else {
-			_isRegistered = true;
-		}
+	void displayDialog(Server serverInfo) {
+		showDialog(
+				context: context,
+				builder: (BuildContext context) => CupertinoAlertDialog(
+					title: Text("同步？"),
+					content: Container(
+						padding: EdgeInsets.symmetric(vertical: 30.0),
+						height: 100.0,
+						child: Column(
+							children: <Widget>[
+								Expanded(child: Text("WiFi：$_wifiName", style: TextStyle(fontWeight: FontWeight.bold),)),
+								Expanded(child: Text("服务器：${serverInfo.serverHashCode}", style: TextStyle(color: Colors.grey),))
+							],
+						),
+					),
+					actions: <Widget>[
+						CupertinoDialogAction(
+							isDefaultAction: true,
+							child: Text("整"),
+							onPressed: () {
+								Navigator.of(context, rootNavigator: true).pop();
+								registerToServer(serverInfo);
+							},
+						),
+						CupertinoDialogAction(
+							child: Text("不約"),
+							onPressed: () {
+								Navigator.of(context, rootNavigator: true).pop();
+								addDiscardServer(serverInfo.serverHashCode);
+							},
+						)
+					],
+				)
+		);
+	}
 
-		Map serverMap = jsonDecode(udpServerMsg);
-		Server server = Server.fromJson(serverMap);
-
+	Future<void> registerToServer(Server server) async {
 		var now = new DateTime.now();
 		var formatter = new DateFormat("yyyyMMddHHmmss");
 		var transId = formatter.format(now);
@@ -108,8 +132,33 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 		};
 
 		final resp = await http.post(url, body: httpBody, headers: headers);
-		if (resp.statusCode != 200 ) {
-			_isRegistered = false;
+		if (resp.statusCode == 200 ) {
+			await insertServer(server.serverHashCode);
+		}
+	}
+
+	deviceRegister(String udpServerMsg) async {
+		// 如果device info还未获取，数据库未初始化完成，跳过，等待下一次消息
+		if (_deviceInfo == null || _isDbInited == false) {
+			return;
+		}
+
+		Map serverMap = jsonDecode(udpServerMsg);
+		Server server = Server.fromJson(serverMap);
+
+		// 如果是已經忽略的server，跳過注冊
+		bool isDiscardServer = await checkDiscardServer(server.serverHashCode);
+		if (isDiscardServer) {
+			print("Server - ${server.serverHashCode} is discard!!!!!!!!");
+			return;
+		}
+
+		// 檢查是否已經注冊過
+		bool isSyncServer = await checkServer(server.serverHashCode);
+		if (!isSyncServer) {
+			displayDialog(server);
+		} else {
+			print("Server - ${server.serverHashCode} is already registered!!!!!!!!");
 		}
 	}
 
@@ -128,7 +177,7 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 	}
 
 	Future<void> doDbInit() async {
-		_db = await initLocalDb();
+		_isDbInited = await initLocalDb();
 	}
 
 	@override
@@ -152,9 +201,16 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
     super.initState();
   }
 
+
+
   @override
-  void dispose() {
-    _subscription.cancel();
+  void dispose() async {
+		if (_subscription != null) {
+			_subscription.cancel();
+		}
+
+    await closeDb();
+
     super.dispose();
   }
 

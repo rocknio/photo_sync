@@ -5,6 +5,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_sync/models/assetModel.dart';
 import 'package:photo_sync/screens/assetsSync.dart';
 import 'package:photo_sync/screens/connectivityLogo.dart';
+import 'package:photo_sync/utils/dbUtils.dart';
 
 void main() {
   // 强制竖屏
@@ -48,10 +49,13 @@ class _HomePageState extends State<HomePage> {
       widget.allAssets.clearAsset();
 
       for (AssetPathEntity oneAssetPath in list) {
-        if (oneAssetPath.name.toLowerCase() == '全部'.toLowerCase()) {
+        if (oneAssetPath.name.toLowerCase() == 'Camera'.toLowerCase()) {
           widget.allAssets.assetPath = oneAssetPath;
           tmpList = await oneAssetPath.assetList;
-          break;
+          // 確認是系統相冊
+          if (!tmpList[0].id.contains("Baidu")) {
+            break;
+          }
         }
       }
 
@@ -92,10 +96,12 @@ class _HomePageState extends State<HomePage> {
         ),
         body: AssetsSyncPage(assetsModel: widget.allAssets.assets),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            refreshAssets();
+          onPressed: () async {
+            // Only for test
+            await deleteDiscardServer();
+            await deleteServer();
           },
-          child: Icon(Icons.sync),
+          child: Icon(Icons.restore),
         ),
     );
   }
