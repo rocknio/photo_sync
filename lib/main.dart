@@ -260,7 +260,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  void dispose() {
+  void dispose() async {
+    await closeDb();
     super.dispose();
   }
 

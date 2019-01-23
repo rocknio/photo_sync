@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:connectivity/connectivity.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'package:photo_sync/utils/dbUtils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:photo_sync/utils/connectivityNotification.dart';
 
@@ -67,8 +66,6 @@ class _ConnectivityLogoState extends State<ConnectivityLogo> {
 		if (_subscription != null) {
 			_subscription.cancel();
 		}
-
-    await closeDb();
 
     super.dispose();
   }
