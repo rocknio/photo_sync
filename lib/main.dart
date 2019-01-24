@@ -288,7 +288,7 @@ class _HomePageState extends State<HomePage> {
               await deleteServer();
               refreshAssets();
             },
-            child: Icon(Icons.restore),
+            child: Icon(Icons.restore, size: 30.0,),
           ),
       ),
     );
