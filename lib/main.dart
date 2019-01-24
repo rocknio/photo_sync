@@ -137,7 +137,7 @@ class _HomePageState extends State<HomePage> {
 
   bool isInitProcessDone() {
     // 如果device info还未获取，数据库未初始化完成，跳过，等待下一次消息
-    return !(_deviceInfo == null || _isDbInitialized == false || widget.allAssets.assets.length == 0 || _wifiName == 'Unknown');
+    return (_deviceInfo == null || _isDbInitialized == false || widget.allAssets.assets.length == 0 || _wifiName == 'Unknown');
   }
 
   deviceRegister(String udpServerMsg) async {
@@ -230,7 +230,7 @@ class _HomePageState extends State<HomePage> {
         ..backgroundGradient = LinearGradient(colors: [Colors.blueGrey, Colors.black])
         ..isDismissible = false
         ..mainButton = FlatButton(
-          child: Text("->赏口饭吃<-", style: TextStyle(color: Colors.blue[500], fontWeight: FontWeight.bold),),
+          child: Icon(Icons.album, color: Colors.blue[300], size: 30.0,),
           onPressed: () async {
             var result = await PhotoManager.requestPermission();
             if (result) {
@@ -269,7 +269,9 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return NotificationListener(
       onNotification: (notification) {
-        _wifiName = notification.msg;
+        setState(() {
+          _wifiName = notification.msg;
+        });
       },
       child: Scaffold(
           appBar: AppBar(
@@ -278,12 +280,13 @@ class _HomePageState extends State<HomePage> {
               ConnectivityLogo(),
             ],
           ),
-          body: AssetsSyncPage(assetsModel: widget.allAssets.assets),
+          body: AssetsSyncPage(assetsModel: widget.allAssets.assets, wifiName: _wifiName,),
           floatingActionButton: FloatingActionButton(
             onPressed: () async {
               // Only for test
               await deleteDiscardServer();
               await deleteServer();
+              refreshAssets();
             },
             child: Icon(Icons.restore),
           ),
