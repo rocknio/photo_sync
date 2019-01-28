@@ -8,7 +8,7 @@ class TableInfo {
 	TableInfo({this.name, this.ddl, this.isInitialized});
 
 	String name;
-	String ddl;
+	List<String> ddl;
 	bool isInitialized;
 }
 
@@ -16,17 +16,21 @@ Map<String, TableInfo> tables = {
 	"servers": TableInfo(
 		name: "servers",
 		isInitialized: false,
-		ddl: 'CREATE TABLE "servers" ("id" integer primary key autoincrement,"server_hash" varchar(64),"init_time" int, "last_sync_time" int)'
+		ddl: ['CREATE TABLE "servers" ("id" integer primary key autoincrement,"server_hash" varchar(64),"init_time" int, "last_sync_time" int)']
 	),
 	"assets": TableInfo(
 		name: "assets",
 		isInitialized: false,
-		ddl: 'CREATE TABLE "assets" ("id" integer primary key autoincrement,"md5" varchar(32),"sync_time" int, "synced" integer)'
+		ddl: [
+			'CREATE TABLE "assets" ("id" integer primary key autoincrement,"asset_id" varchar(128), "md5" varchar(32),"sync_time" int, "synced" int)',
+			'CREATE INDEX idx_assets_asset_id on table_name ("asset_id")',
+			'CREATE INDEX idx_assets_md5 on table_name ("md5")',
+		]
 	),
 	"discard_servers": TableInfo(
-			name: "discard_servers",
-			isInitialized: false,
-			ddl: 'CREATE TABLE "discard_servers" ("id" integer primary key autoincrement,"server_hash" varchar(64),"discard_time" int)'
+		name: "discard_servers",
+		isInitialized: false,
+		ddl: ['CREATE TABLE "discard_servers" ("id" integer primary key autoincrement,"server_hash" varchar(64),"discard_time" int)']
 	),
 };
 
@@ -53,7 +57,9 @@ initDbTable(Database db) async {
 
 	tables.forEach((tableName, tableInfo) async {
 		if (!tableInfo.isInitialized) {
-			await db.execute(tableInfo.ddl);
+			tableInfo.ddl.forEach((ddl) async {
+				await db.execute(ddl);
+			});
 		}
 	});
 }

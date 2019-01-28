@@ -17,6 +17,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:photo_sync/models/server.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:photo_sync/screens/photoGrid.dart';
 
 void main() {
   // 强制竖屏
@@ -72,9 +73,6 @@ class _HomePageState extends State<HomePage> {
       IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
       print("Running on IOS: $iosInfo");
     }
-
-//		String ip = await GetIp.ipAddress;
-//		print("Ip Address = $ip ------------------------");
   }
 
   void addDiscardServer(String serverHashCode) async {
@@ -217,7 +215,7 @@ class _HomePageState extends State<HomePage> {
     if (!(result == true)) {
       Flushbar(flushbarPosition: FlushbarPosition.BOTTOM,)
         ..title = "亲"
-        ..message = "没有读取相册权限"
+        ..message = "让我读相册啊......"
         ..icon = Icon(
           Icons.info_outline,
           size: 28.0,
@@ -274,22 +272,35 @@ class _HomePageState extends State<HomePage> {
         });
       },
       child: Scaffold(
-          appBar: AppBar(
-            title: Text('Photo Sync'),
-            actions: <Widget>[
-              ConnectivityLogo(),
+        appBar: AppBar(
+          title: Text('Photo Sync'),
+          actions: <Widget>[
+            ConnectivityLogo(),
+          ],
+        ),
+        body: Container(
+          child: Column(
+            children: <Widget>[
+              Expanded(
+                flex: 1,
+                child: AssetsSyncPage(assetsModel: widget.allAssets.assets, wifiName: _wifiName,),
+              ),
+              Expanded(
+                flex: 1,
+                child: PhotoGrid(photos: widget.allAssets.assets,),
+              )
             ],
           ),
-          body: AssetsSyncPage(assetsModel: widget.allAssets.assets, wifiName: _wifiName,),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () async {
-              // Only for test
-              await deleteDiscardServer();
-              await deleteServer();
-              refreshAssets();
-            },
-            child: Icon(Icons.restore, size: 30.0,),
-          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            // Only for test
+            await deleteDiscardServer();
+            await deleteServer();
+            refreshAssets();
+          },
+          child: Icon(Icons.restore, size: 30.0,),
+        ),
       ),
     );
   }
