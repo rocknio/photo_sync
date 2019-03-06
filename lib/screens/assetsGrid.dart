@@ -24,7 +24,7 @@ class AssetsGridPage extends StatelessWidget {
 						onTap: () {
 							Navigator.push(context, MaterialPageRoute(builder: (context) => AssetShowPage(asset: asset,)));
 						},
-						child: assetContainer(snapshot.data, asset.type)
+						child: assetContainer(snapshot.data, asset.type, false)
 					);
 				} else {
 					return Center(

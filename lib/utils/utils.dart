@@ -13,7 +13,7 @@ BoxDecoration assetDecoration() {
 	);
 }
 
-Container assetContainer(Uint8List data, AssetType type) {
+Container assetContainer(Uint8List data, AssetType type, bool isSynced) {
 	return Container(
 		margin: const EdgeInsets.all(0.5),
 		decoration: assetDecoration(),
@@ -36,7 +36,8 @@ Container assetContainer(Uint8List data, AssetType type) {
 				),
 				Container(
 						alignment: Alignment.topRight,
-						child: Icon(Icons.check_circle_outline, size: 18.0, color: Colors.grey,)
+						child: isSynced ? Icon(Icons.check_circle, size: 24.0, color: Colors.green[800],):
+															Icon(Icons.check_circle_outline, size: 24.0, color: Colors.white,)
 				),
 			],
 		),

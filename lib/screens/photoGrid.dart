@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:photo_sync/models/assetModel.dart';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:photo_sync/utils/utils.dart';
+import 'package:photo_sync/screens/assetContainer.dart';
 
 class PhotoGrid extends StatefulWidget {
 	final List<AssetModel> photos;
@@ -31,7 +31,7 @@ class _PhotoGridState extends State<PhotoGrid> {
 		AssetEntity entity = widget.photos[index].asset;
 		print("request index = $index , image id = ${entity.id} type = ${entity.type}");
 
-		Future<Uint8List> thumbDataWithSize = entity.thumbDataWithSize(500, 500);
+		Future<Uint8List> thumbDataWithSize = entity.thumbDataWithSize(300, 300);
 
 		return FutureBuilder<Uint8List>(
 			future: thumbDataWithSize,
@@ -39,7 +39,7 @@ class _PhotoGridState extends State<PhotoGrid> {
 				if (snapshot.connectionState == ConnectionState.done && snapshot.data != null) {
 					return InkWell(
 						onTap: () => showInfo(entity),
-						child: assetContainer(snapshot.data, entity.type),
+						child: AssetContainer(snapshot.data, entity.type, entity.id),
 					);
 				}
 				return Center(
