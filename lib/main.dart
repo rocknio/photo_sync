@@ -52,6 +52,7 @@ class _HomePageState extends State<HomePage> {
   String _wifiName;
   DeviceInfo _deviceInfo;
   bool _isDbInitialized = false;
+  bool _isNotifying = false;
 
   generateMd5(String data) {
     var content = new Utf8Encoder().convert(data);
@@ -77,42 +78,47 @@ class _HomePageState extends State<HomePage> {
 
   void addDiscardServer(String serverHashCode) async {
     await insertDiscardServer(serverHashCode);
+
+    _isNotifying = false;
   }
 
   void displayDialog(Server serverInfo) {
-    showDialog(
-        context: context,
-        builder: (BuildContext context) => CupertinoAlertDialog(
-          title: Text("同步？"),
-          content: Container(
-            padding: EdgeInsets.symmetric(vertical: 30.0),
-            height: 100.0,
-            child: Column(
-              children: <Widget>[
-                Expanded(child: Text("WiFi：$_wifiName", style: TextStyle(fontWeight: FontWeight.bold),)),
-                Expanded(child: Text("服务器：${serverInfo.serverHashCode}", style: TextStyle(color: Colors.grey),))
-              ],
+    if (_isNotifying != true) {
+      _isNotifying = true;
+      showDialog(
+          context: context,
+          builder: (BuildContext context) => CupertinoAlertDialog(
+            title: Text("同步？"),
+            content: Container(
+              padding: EdgeInsets.symmetric(vertical: 30.0),
+              height: 100.0,
+              child: Column(
+                children: <Widget>[
+                  Expanded(child: Text("WiFi：$_wifiName", style: TextStyle(fontWeight: FontWeight.bold),)),
+                  Expanded(child: Text("服务器：${serverInfo.serverHashCode}", style: TextStyle(color: Colors.grey),))
+                ],
+              ),
             ),
-          ),
-          actions: <Widget>[
-            CupertinoDialogAction(
-              isDefaultAction: true,
-              child: Text("整"),
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).pop();
-                registerToServer(serverInfo);
-              },
-            ),
-            CupertinoDialogAction(
-              child: Text("不約"),
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).pop();
-                addDiscardServer(serverInfo.serverHashCode);
-              },
-            )
-          ],
-        )
-    );
+            actions: <Widget>[
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                child: Text("整"),
+                onPressed: () {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  registerToServer(serverInfo);
+                },
+              ),
+              CupertinoDialogAction(
+                child: Text("不約"),
+                onPressed: () {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  addDiscardServer(serverInfo.serverHashCode);
+                },
+              )
+            ],
+          )
+      );
+    }
   }
 
   Future<void> registerToServer(Server server) async {
@@ -131,6 +137,8 @@ class _HomePageState extends State<HomePage> {
     if (resp.statusCode == 200 ) {
       await insertServer(server.serverHashCode);
     }
+
+    _isNotifying = false;
   }
 
   bool isInitProcessDone() {
@@ -297,6 +305,7 @@ class _HomePageState extends State<HomePage> {
             // Only for test
             await deleteDiscardServer();
             await deleteServer();
+            await deleteAssets();
             refreshAssets();
           },
           child: Icon(Icons.restore, size: 30.0,),

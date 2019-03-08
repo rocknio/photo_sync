@@ -37,9 +37,10 @@ class _PhotoGridState extends State<PhotoGrid> {
 			future: thumbDataWithSize,
 			builder: (BuildContext context, AsyncSnapshot<Uint8List> snapshot) {
 				if (snapshot.connectionState == ConnectionState.done && snapshot.data != null) {
+					widget.photos[index].setThumbData(snapshot.data);
 					return InkWell(
 						onTap: () => showInfo(entity),
-						child: AssetContainer(snapshot.data, entity.type, entity.id),
+						child: AssetContainer(snapshot.data, widget.photos[index]),
 					);
 				}
 				return Center(

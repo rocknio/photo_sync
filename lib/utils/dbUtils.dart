@@ -22,7 +22,7 @@ Map<String, TableInfo> tables = {
 		name: "assets",
 		isInitialized: false,
 		ddl: [
-			'CREATE TABLE "assets" ("id" integer primary key autoincrement,"asset_id" varchar(128), "md5" varchar(32),"sync_time" int, "synced" int)',
+			'CREATE TABLE "assets" ("id" integer primary key autoincrement,"asset_id" varchar(256), "md5" varchar(32),"sync_time" int, "synced" int)',
 			'CREATE INDEX idx_assets_asset_id on assets ("asset_id")',
 			'CREATE INDEX idx_assets_md5 on assets ("md5")',
 		]
@@ -108,7 +108,8 @@ Future<bool> isAssetAlreadySynced(String assetId, String md5) async {
 	List<Map> list = await _db.rawQuery("select * from assets where asset_id='$assetId' and md5 = '$md5' limit 1", );
 	if (list.length == 0) {
 		// 没有记录，的第一次扫描到图片，添加一条初始记录
-		return saveAssetState(assetId, md5, '', 0);
+		await newAssetState(assetId, md5, '', 0);
+		return false;
 	} else {
 		if (list[0]['synced'] == 1) {
 			return true;
@@ -118,7 +119,7 @@ Future<bool> isAssetAlreadySynced(String assetId, String md5) async {
 	}
 }
 
-Future<bool> saveAssetState(String assetId, String md5, String syncTime, int synced) async {
+Future<bool> newAssetState(String assetId, String md5, String syncTime, int synced) async {
 	int id = await _db.rawInsert("insert into assets(asset_id,md5,sync_time,synced) values (?, ?, ?, ?)", [assetId, md5, syncTime, synced]);
 	if ( id > 0 ) {
 		return true;
@@ -134,6 +135,10 @@ Future<bool> updateAssetState(String assetId, String md5, String syncTime, int s
 	} else {
 		return false;
 	}
+}
+
+deleteAssets() async {
+	await _db.rawDelete("delete from assets");
 }
 
 deleteDiscardServer() async {

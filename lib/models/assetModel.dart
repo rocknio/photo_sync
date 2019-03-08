@@ -2,6 +2,8 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:async';
 import 'package:convert/convert.dart';
+import 'package:photo_sync/utils/dbUtils.dart';
+import 'dart:typed_data';
 
 class AllAssets {
 	AssetPathEntity assetPath;
@@ -25,33 +27,37 @@ class AllAssets {
 class AssetModel {
 	AssetEntity _asset;
 	bool _isSynced = false;
-	bool _isSelected = true; // 默认需要同步
 	String _md5 = "";
+	Uint8List _thumbDataWithSize;
 
 	get isSynced => _isSynced;
-	get isSelected => _isSelected;
 	get sign => _md5;
 	get asset => _asset;
+	get assetId => _asset.id;
+	get assetType => _asset.type;
+	get thumbData => _thumbDataWithSize;
 
-	Future<bool> checkSyncStatus(String md5) async {
-		//TODO 和服务端比对MD5，是否已经同步过
-		return false;
+	Future<bool> checkSyncStatus() async {
+		return await isAssetAlreadySynced(assetId, _md5);
 	}
 
-	Future<void> getAssetFullData(AssetEntity asset) async {
-		List<int> tmpFullData =  await asset.fullData;
-		var content = md5.convert(tmpFullData);
+	Future<bool> getAssetFullData() async {
+//		List<int> tmpFullData =  await _asset.fullData;
+//		var content = md5.convert(tmpFullData);
+		var content = md5.convert(_thumbDataWithSize);
 		_md5 = hex.encode(content.bytes);
 
-		_isSynced = await checkSyncStatus(_md5);
+		_isSynced = await checkSyncStatus();
 
 		print("md5 = $_md5, isSynced = $_isSynced");
+		return _isSynced;
+	}
+
+	void setThumbData(Uint8List data) {
+		_thumbDataWithSize = data;
 	}
 
 	void setAsset(AssetEntity asset) {
 		_asset = asset;
-		if (_md5 == "") {
-//			getAssetFullData(_asset);
-		}
 	}
 }
