@@ -18,6 +18,7 @@ import 'package:photo_sync/models/server.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:photo_sync/screens/photoGrid.dart';
+import 'package:photo_sync/grpc/own_fog_client.dart';
 
 void main() {
   // 强制竖屏
@@ -53,6 +54,9 @@ class _HomePageState extends State<HomePage> {
   DeviceInfo _deviceInfo;
   bool _isDbInitialized = false;
   bool _isNotifying = false;
+  Timer _loopTimer;
+  Server _server = Server("", 0, "");
+  bool isStartSync = false;
 
   generateMd5(String data) {
     var content = new Utf8Encoder().convert(data);
@@ -136,37 +140,51 @@ class _HomePageState extends State<HomePage> {
     final resp = await http.post(url, body: httpBody, headers: headers);
     if (resp.statusCode == 200 ) {
       await insertServer(server.serverHashCode);
+      _server.isConfirmed = true;
     }
 
     _isNotifying = false;
   }
 
-  bool isInitProcessDone() {
+  bool isInitProcessDone(bool isCheckServer) {
     // 如果device info还未获取，数据库未初始化完成，跳过，等待下一次消息
-    return (_deviceInfo == null || _isDbInitialized == false || widget.allAssets.assets.length == 0 || _wifiName == 'Unknown');
+    print("***************************************************************");
+    print(_deviceInfo.deviceId);
+    print(_isDbInitialized);
+    print(widget.allAssets.assets.length);
+    print(_wifiName);
+    print(_server.isConfirmed);
+    print("***************************************************************");
+    if (isCheckServer) {
+      return (_deviceInfo == null || _isDbInitialized == false || widget.allAssets.assets.length == 0 || _wifiName == 'Unknown' || _server.isConfirmed == false);
+    } else {
+      return (_deviceInfo == null || _isDbInitialized == false || widget.allAssets.assets.length == 0 || _wifiName == 'Unknown');
+    }
   }
 
   deviceRegister(String udpServerMsg) async {
-    if (isInitProcessDone()) {
+    if (isInitProcessDone(false)) {
       return;
     }
 
     Map serverMap = jsonDecode(udpServerMsg);
-    Server server = Server.fromJson(serverMap);
+    _server = Server.fromJson(serverMap);
+    _server.isConfirmed = false;
 
     // 如果是已經忽略的server，跳過注冊
-    bool isDiscardServer = await checkDiscardServer(server.serverHashCode);
+    bool isDiscardServer = await checkDiscardServer(_server.serverHashCode);
     if (isDiscardServer) {
-      print("Server - ${server.serverHashCode} is discard!!!!!!!!");
+      print("Server - ${_server.serverHashCode} is discard!!!!!!!!");
       return;
     }
 
     // 檢查是否已經注冊過
-    bool isSyncServer = await checkServer(server.serverHashCode);
+    bool isSyncServer = await checkServer(_server.serverHashCode);
     if (!isSyncServer) {
-      displayDialog(server);
+      displayDialog(_server);
     } else {
-      print("Server - ${server.serverHashCode} is already registered!!!!!!!!");
+      _server.isConfirmed = true;
+      print("Server - ${_server.serverHashCode} is already registered!!!!!!!!");
     }
   }
 
@@ -178,7 +196,7 @@ class _HomePageState extends State<HomePage> {
       udpSocket.listen((RawSocketEvent event) {
         if ( event == RawSocketEvent.read ) {
           Datagram dg = udpSocket.receive();
-          deviceRegister(new String.fromCharCodes(dg.data));
+          deviceRegister(String.fromCharCodes(dg.data));
         }
       });
     });
@@ -250,8 +268,26 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void startSyncLoop() {
+    if (_loopTimer != null) {
+      _loopTimer.cancel();
+    }
+
+    if (!isStartSync) {
+      _loopTimer = Timer.periodic(Duration(seconds: 5), (_) async {
+        if (!isInitProcessDone(true)) {
+          isStartSync = true;
+          await uploadFile(_server, widget.allAssets.assets[0], _deviceInfo.deviceId);
+          isStartSync = false;
+        }
+      });
+    }
+  }
+
   @override
   void initState() {
+    _server.isConfirmed = false;
+
     refreshAssets();
 
     // 初始化本地数据库
@@ -262,12 +298,17 @@ class _HomePageState extends State<HomePage> {
     // 启动udp server 接收局域网内own_fog的广播
     startUdpServer();
 
+    // 启动同步操作
+    startSyncLoop();
+
     super.initState();
   }
 
   @override
   void dispose() async {
     await closeDb();
+    _loopTimer.cancel();
+    grpcDispose();
     super.dispose();
   }
 

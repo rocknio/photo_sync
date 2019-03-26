@@ -1,9 +1,8 @@
 import 'package:photo_manager/photo_manager.dart';
-import 'package:crypto/crypto.dart';
 import 'dart:async';
-import 'package:convert/convert.dart';
 import 'package:photo_sync/utils/dbUtils.dart';
 import 'dart:typed_data';
+import 'package:photo_sync/utils/utils.dart';
 
 class AllAssets {
 	AssetPathEntity assetPath;
@@ -28,7 +27,7 @@ class AssetModel {
 	AssetEntity _asset;
 	bool _isSynced = false;
 	String _md5 = "";
-	Uint8List _thumbDataWithSize;
+	Uint8List _thumbDataWithSize = Uint8List(0);
 
 	get isSynced => _isSynced;
 	get sign => _md5;
@@ -42,12 +41,13 @@ class AssetModel {
 	}
 
 	Future<bool> getAssetFullData() async {
-//		List<int> tmpFullData =  await _asset.fullData;
-//		var content = md5.convert(tmpFullData);
-		var content = md5.convert(_thumbDataWithSize);
-		_md5 = hex.encode(content.bytes);
+		if (_md5.length <= 0) {
+			_thumbDataWithSize = await _asset.thumbDataWithSize(300, 300);
 
-		_isSynced = await checkSyncStatus();
+			_md5 = calcMd5(_thumbDataWithSize);
+
+//			_isSynced = await checkSyncStatus();
+		}
 
 		print("md5 = $_md5, isSynced = $_isSynced");
 		return _isSynced;

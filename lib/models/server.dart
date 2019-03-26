@@ -15,6 +15,8 @@ class Server {
 	@JsonKey(name: "hash_code")
 	String serverHashCode;
 
+	bool isConfirmed;
+
 	factory Server.fromJson(Map<String, dynamic> json) => _$ServerFromJson(json);
 
 	Map<String, dynamic> toJson() => _$ServerToJson(this);

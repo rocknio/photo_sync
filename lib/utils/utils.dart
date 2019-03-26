@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:crypto/crypto.dart';
+import 'package:convert/convert.dart';
 
 BoxDecoration assetDecoration() {
 	return BoxDecoration(
@@ -42,4 +44,10 @@ Container assetContainer(Uint8List data, AssetType type, bool isSynced) {
 			],
 		),
 	);
+}
+
+String calcMd5(Uint8List data) {
+	var content = md5.convert(data);
+	String _md5 = hex.encode(content.bytes);
+	return _md5;
 }

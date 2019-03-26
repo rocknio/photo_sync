@@ -32,6 +32,7 @@ class _AssetContainerState extends State<AssetContainer> {
 			});
 		}
 	}
+
 	@override
   void initState() {
     eventBus.on<SyncDoneEvent>().listen((event){
