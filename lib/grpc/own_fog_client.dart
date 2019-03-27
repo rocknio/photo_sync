@@ -26,8 +26,8 @@ void initGrpcClient(String serverIp, int serverPort) {
 Future<bool> uploadFile(gRpcServer.Server server, AssetModel assetModel, String deviceId) async {
 	RegExp reg = RegExp(r"((?:(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))\.){3}(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d))))");
 	String serverIp;
-	bool ret;
-	int fix, totalCount, idx, start, dst;
+	bool ret, isFinished;
+	int fix, totalCount, idx, start, dst, reTry;
 	String assetMd5;
 
 	if (isInitialized == false) {
@@ -75,16 +75,29 @@ Future<bool> uploadFile(gRpcServer.Server server, AssetModel assetModel, String 
 			..timestamp = DateTime.now().microsecondsSinceEpoch.toString()
 			..fileContent = assetContent.getRange(start, dst).toList();
 
-		try {
-			final resp = await stub.uploadFile(uploadReq);
-			print(resp.toString());
-			if (resp.status == EnumStatus.SUCCESS) {
-				ret = true;
-			} else {
+		for(reTry = 0; reTry < 3; reTry++) {
+			try {
+				final resp = await stub.uploadFile(uploadReq);
+				print(resp.toString());
+				if (resp.status == EnumStatus.SUCCESS) {
+					ret = true;
+					isFinished = resp.isFinished;
+					break;
+				}
+			} catch (e) {
 				ret = false;
+				isFinished = false;
+				print("Caught error: $e");
 			}
-		} catch (e) {
-			print("Caught error: $e");
+		}
+
+		if (isFinished) {
+			break;
+		}
+
+		if (reTry >= 3) {
+			ret = false;
+			break;
 		}
 	}
 
