@@ -19,6 +19,7 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:photo_sync/screens/photoGrid.dart';
 import 'package:photo_sync/grpc/own_fog_client.dart';
+import 'package:photo_sync/utils/eventUtils.dart';
 
 void main() {
   // 强制竖屏
@@ -56,7 +57,6 @@ class _HomePageState extends State<HomePage> {
   bool _isNotifying = false;
   Timer _loopTimer;
   Server _server = Server("", 0, "");
-  bool isStartSync = false;
 
   generateMd5(String data) {
     var content = new Utf8Encoder().convert(data);
@@ -156,14 +156,14 @@ class _HomePageState extends State<HomePage> {
     print(_server.isConfirmed);
     print("***************************************************************");
     if (isCheckServer) {
-      return (_deviceInfo == null || _isDbInitialized == false || widget.allAssets.assets.length == 0 || _wifiName == 'Unknown' || _server.isConfirmed == false);
+      return !(_deviceInfo == null || _isDbInitialized == false || widget.allAssets.assets.length == 0 || _wifiName == 'Unknown' || _server.isConfirmed == false);
     } else {
-      return (_deviceInfo == null || _isDbInitialized == false || widget.allAssets.assets.length == 0 || _wifiName == 'Unknown');
+      return !(_deviceInfo == null || _isDbInitialized == false || widget.allAssets.assets.length == 0 || _wifiName == 'Unknown');
     }
   }
 
   deviceRegister(String udpServerMsg) async {
-    if (isInitProcessDone(false)) {
+    if (!isInitProcessDone(false)) {
       return;
     }
 
@@ -214,21 +214,16 @@ class _HomePageState extends State<HomePage> {
 
     for (AssetPathEntity oneAssetPath in list) {
       if (oneAssetPath.name.toLowerCase() == 'Camera'.toLowerCase()) {
-        widget.allAssets.assetPath = oneAssetPath;
         tmpList = await oneAssetPath.assetList;
-        // 確認是系統相冊
-        if (!tmpList[0].id.contains("Baidu")) {
-          break;
+
+        for (AssetEntity one_asset in tmpList) {
+          widget.allAssets.addAsset(one_asset);
         }
       }
     }
 
     if (!mounted) {
       return;
-    }
-
-    for (AssetEntity one_asset in tmpList) {
-      widget.allAssets.addAsset(one_asset);
     }
 
     setState(() {
@@ -268,20 +263,69 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void startSyncLoop() {
-    if (_loopTimer != null) {
-      _loopTimer.cancel();
+  void fireSyncedEvent(bool isSynced, String fileName) {
+    SyncDoneEvent syncEvent = SyncDoneEvent(isSynced, fileName);
+    eventBus.fire(syncEvent);
+  }
+
+  void fireCountDownEvent(int step) {
+    CountDownEvent countDownEvent = CountDownEvent(1);
+    eventBus.fire(countDownEvent);
+  }
+
+  void syncProceed() async {
+    int idx;
+    bool ret;
+    int syncedCount = 0;
+
+    if (!isInitProcessDone(true)) {
+      return;
     }
 
-    if (!isStartSync) {
-      _loopTimer = Timer.periodic(Duration(seconds: 5), (_) async {
-        if (!isInitProcessDone(true)) {
-          isStartSync = true;
-          await uploadFile(_server, widget.allAssets.assets[0], _deviceInfo.deviceId);
-          isStartSync = false;
+    _loopTimer.cancel();
+
+    syncedCount = await syncedAssetsCount();
+    if (widget.allAssets.assets.length > syncedCount) {
+      for(idx = 0; idx < widget.allAssets.assets.length; idx++)
+      {
+        if (widget.allAssets.assets[idx].isSynced) {
+          print(widget.allAssets.assets[idx].assetId.toString().split('/').last + " is already synced...");
+          widget.allAssets.assets[idx].setIsSynced(true);
+          fireSyncedEvent(widget.allAssets.assets[idx].isSynced, widget.allAssets.assets[idx].assetId.toString().split('/').last);
+        } else {
+          print("start sync file: " + widget.allAssets.assets[idx].assetId.toString().split('/').last);
+          try {
+            ret = await uploadFile(_server, widget.allAssets.assets[idx], _deviceInfo.deviceId);
+            if (ret) {
+//              await newSyncedAsset(widget.allAssets.assets[idx].assetId.toString().split('/').last);
+              widget.allAssets.assets[idx].setIsSynced(true);
+              fireSyncedEvent(widget.allAssets.assets[idx].isSynced, widget.allAssets.assets[idx].assetId.toString().split('/').last);
+              fireCountDownEvent(1);
+              print("sync file: " + widget.allAssets.assets[idx].assetId.toString().split('/').last + " SUCCESS!!!");
+            }
+          } catch(e) {
+            print("gRpc exception, e = " + e.toString());
+          }
         }
-      });
+      }
     }
+
+    startSyncLoop();
+  }
+
+  void cancelLoopTimer() {
+    if (_loopTimer != null && _loopTimer.isActive) {
+      _loopTimer.cancel();
+      _loopTimer = null;
+    }
+  }
+
+  void startSyncLoop() {
+    cancelLoopTimer();
+
+    _loopTimer = Timer.periodic(Duration(seconds: 5), (_) {
+        syncProceed();
+    });
   }
 
   @override
@@ -307,18 +351,26 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() async {
     await closeDb();
-    _loopTimer.cancel();
-    grpcDispose();
+    cancelLoopTimer();
     super.dispose();
+  }
+
+  void cleanAssetsStat() async {
+    await deleteAssets();
   }
 
   @override
   Widget build(BuildContext context) {
     return NotificationListener(
       onNotification: (notification) {
-        setState(() {
-          _wifiName = notification.msg;
-        });
+        if (_wifiName != notification.msg) {
+          if (_isDbInitialized){
+            cleanAssetsStat();
+          }
+          setState(() {
+            _wifiName = notification.msg;
+          });
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -343,9 +395,6 @@ class _HomePageState extends State<HomePage> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            // Only for test
-            await deleteDiscardServer();
-            await deleteServer();
             await deleteAssets();
             refreshAssets();
           },

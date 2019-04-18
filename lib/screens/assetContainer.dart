@@ -25,7 +25,7 @@ class _AssetContainerState extends State<AssetContainer> {
   }
 
 	void initAsset() async {
-		bool ret = await widget.asset.getAssetFullData();
+		bool ret = await widget.asset.isSynced;
 		if ( ret != isSynced && isDispose == false ){
 			setState(() {
 				isSynced = widget.asset.isSynced;
@@ -45,11 +45,14 @@ class _AssetContainerState extends State<AssetContainer> {
 
   void updateState(SyncDoneEvent event) {
 		if (event.syncResult) {
-			if (event.syncedEntityId == widget.asset.assetId) {
+			if (event.syncedEntityId == widget.asset.assetId.toString().split('/').last) {
 				if (isSynced != true) {
-					setState(() {
-						isSynced = true;
-					});
+					isSynced = true;
+					if (mounted){
+						setState(() {
+
+						});
+					}
 				}
 			}
 		}

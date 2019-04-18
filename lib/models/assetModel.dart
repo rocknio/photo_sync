@@ -1,16 +1,12 @@
 import 'package:photo_manager/photo_manager.dart';
-import 'dart:async';
-import 'package:photo_sync/utils/dbUtils.dart';
 import 'dart:typed_data';
-import 'package:photo_sync/utils/utils.dart';
 
 class AllAssets {
-	AssetPathEntity assetPath;
 	List<AssetModel> _assets = [];
 
 	get assets => _assets;
 
-	void addAsset(AssetEntity assetEntity) {
+	void addAsset(AssetEntity assetEntity) async {
 		AssetModel assetModel = AssetModel();
 		assetModel.setAsset(assetEntity);
 
@@ -19,7 +15,6 @@ class AllAssets {
 
 	void clearAsset() {
 		_assets.clear();
-		assetPath = null;
 	}
 }
 
@@ -36,28 +31,16 @@ class AssetModel {
 	get assetType => _asset.type;
 	get thumbData => _thumbDataWithSize;
 
-	Future<bool> checkSyncStatus() async {
-		return await isAssetAlreadySynced(assetId, _md5);
-	}
-
-	Future<bool> getAssetFullData() async {
-		if (_md5.length <= 0) {
-			_thumbDataWithSize = await _asset.thumbDataWithSize(300, 300);
-
-			_md5 = calcMd5(_thumbDataWithSize);
-
-//			_isSynced = await checkSyncStatus();
-		}
-
-		print("md5 = $_md5, isSynced = $_isSynced");
-		return _isSynced;
-	}
-
 	void setThumbData(Uint8List data) {
 		_thumbDataWithSize = data;
 	}
 
-	void setAsset(AssetEntity asset) {
+	bool setAsset(AssetEntity asset) {
 		_asset = asset;
+		return _isSynced;
+	}
+
+	void setIsSynced(bool isSynced) {
+		_isSynced = isSynced;
 	}
 }

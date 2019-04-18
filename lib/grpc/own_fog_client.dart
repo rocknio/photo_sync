@@ -6,22 +6,7 @@ import 'package:photo_sync/models/server.dart' as gRpcServer;
 import 'dart:typed_data';
 import 'package:photo_sync/utils/utils.dart';
 
-ClientChannel channel;
-UploadFileServiceClient stub;
-bool isInitialized = false;
 const int seg_len = 512 * 1024;
-
-void initGrpcClient(String serverIp, int serverPort) {
-	channel = ClientChannel(
-		serverIp,
-		port: serverPort,
-		options: const ChannelOptions(
-			credentials: const ChannelCredentials.insecure()
-		)
-	);
-	stub = UploadFileServiceClient(channel, options: CallOptions(timeout: Duration(seconds: 10)));
-	isInitialized = true;
-}
 
 Future<bool> uploadFile(gRpcServer.Server server, AssetModel assetModel, String deviceId) async {
 	RegExp reg = RegExp(r"((?:(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))\.){3}(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d))))");
@@ -29,16 +14,22 @@ Future<bool> uploadFile(gRpcServer.Server server, AssetModel assetModel, String 
 	bool ret, isFinished;
 	int fix, totalCount, idx, start, dst, reTry;
 	String assetMd5;
+	ClientChannel channel;
+	UploadFileServiceClient stub;
 
-	if (isInitialized == false) {
-		serverIp = reg.firstMatch(server.registerUrl).group(0);
-		initGrpcClient(serverIp, server.fileUploadPort);
-	}
+	serverIp = reg.firstMatch(server.registerUrl).group(0);
+	channel = ClientChannel(
+			serverIp,
+			port: server.fileUploadPort,
+			options: const ChannelOptions(
+					credentials: const ChannelCredentials.insecure()
+			)
+	);
+	stub = UploadFileServiceClient(channel, options: CallOptions(timeout: Duration(seconds: 30)));
 
 	var file = await assetModel.asset.file;
 	Uint8List assetContent = await assetModel.asset.fullData;
 
-//	assetModel.getAssetFullData();
 	assetMd5 = calcMd5(assetContent);
 	if ((assetContent.lengthInBytes % seg_len) != 0) {
 		fix = 1;
@@ -88,6 +79,18 @@ Future<bool> uploadFile(gRpcServer.Server server, AssetModel assetModel, String 
 				ret = false;
 				isFinished = false;
 				print("Caught error: $e");
+
+				// 重新初始化客户端
+				await channel.shutdown();
+
+				channel = ClientChannel(
+						serverIp,
+						port: server.fileUploadPort,
+						options: const ChannelOptions(
+								credentials: const ChannelCredentials.insecure()
+						)
+				);
+				stub = UploadFileServiceClient(channel, options: CallOptions(timeout: Duration(seconds: 30)));
 			}
 		}
 
@@ -101,13 +104,6 @@ Future<bool> uploadFile(gRpcServer.Server server, AssetModel assetModel, String 
 		}
 	}
 
-	return ret;
-}
-
-void refreshAllAssets(AssetModel asset) {
-	asset.getAssetFullData();
-}
-
-void grpcDispose() async {
 	await channel.shutdown();
+	return ret;
 }

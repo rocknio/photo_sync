@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:photo_sync/models/assetModel.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:photo_sync/utils/eventUtils.dart';
 
 class AssetsSyncPage extends StatefulWidget {
 	final List<AssetModel> assetsModel;
@@ -16,11 +17,35 @@ class AssetsSyncPage extends StatefulWidget {
 }
 
 class AssetsSyncPageState extends State<AssetsSyncPage> {
-	int _syncCount;
+	int _syncCount = 0;
+	int _totalCount = 0;
+	double _percent = 0.0;
+	bool _isInitialized = false;
+
+	void initCount() {
+		_totalCount = widget.assetsModel.length;
+		_syncCount = _totalCount;
+		_percent = _syncCount / _totalCount;
+	}
+
+	@override
+  void initState() {
+		eventBus.on<CountDownEvent>().listen((event){
+			setState(() {
+			  _syncCount = _syncCount - event.step;
+			  _percent = _syncCount / _totalCount;
+			});
+		});
+
+    super.initState();
+  }
 
 	@override
 	Widget build(BuildContext context) {
-		_syncCount = widget.assetsModel.length;
+		if (widget.assetsModel.length > 0 && _isInitialized == false) {
+			initCount();
+			_isInitialized = true;
+		}
 		return Container(
 			child: Column(
 			  children: <Widget>[
@@ -35,12 +60,12 @@ class AssetsSyncPageState extends State<AssetsSyncPage> {
 									  flex: 3,
 									  child: CircularPercentIndicator(
 										  radius: 150.0,
-										  animation: true,
+										  animation: false,
 										  animationDuration: 1200,
 										  lineWidth: 13.0,
-										  percent: 0.7,
+										  percent: _percent,
 										  center: Text(
-											  '$_syncCount',
+											  '$_syncCount' + '/' + '$_totalCount',
 											  style: TextStyle(fontSize: 30.0, color: Colors.amber[700], fontWeight: FontWeight.bold),
 										  ),
 										  progressColor: Colors.amber[700],

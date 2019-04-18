@@ -10,3 +10,10 @@ class SyncDoneEvent {
 
 	SyncDoneEvent(this.syncResult, this.syncedEntityId);
 }
+
+// count down event
+class CountDownEvent {
+	int step;
+
+	CountDownEvent(this.step);
+}
